@@ -10,8 +10,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata = {
   title: "ExamSim - Realistic Competitive Exam Simulator",
   description:
-    "Practice for JEE, NEET, EAMCET and other competitive exams in an environment that perfectly mimics the real test.",
-    generator: 'v0.dev'
+    "Practice for JEE, NEET, EAMCET and other competitive exams in an environment that perfectly mimics the real test."
 }
 
 export default function RootLayout({
