@@ -10,8 +10,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Exam Simulator",
-  description: "A comprehensive exam preparation platform",
-    generator: 'v0.dev'
+  description: "A comprehensive exam preparation platform"
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
