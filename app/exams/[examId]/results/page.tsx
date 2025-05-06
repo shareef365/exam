@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowRight, CheckCircle, ChevronDown, ChevronUp, Download, Home, Printer, Share2, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,61 +12,115 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useToast } from "@/components/ui/use-toast"
+import {
+  Chart,
+  ChartContent,
+  PieChartContainer,
+  ChartPie,
+  ChartCell,
+  PieChartTooltip,
+  BarChartContainer,
+  ChartBar,
+  ChartXAxis,
+  ChartYAxis,
+  ChartLegend,
+  ChartTooltip,
+  RadialBarChartContainer,
+  ChartRadialBar,
+} from "@/components/ui/chart"
 
-// Import exam data
+// Import exam data and results
 import { getExamData } from "@/lib/exam-data"
+import { getExamResult, getLatestExamResult } from "@/lib/exam-results"
 
 export default function ResultsPage({ params }: { params: { examId: string } }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { toast } = useToast()
   const [showAnswers, setShowAnswers] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
+  const [examResult, setExamResult] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Get session ID from URL or use latest result
+  const sessionId = searchParams.get("session")
 
   // Get exam data
   const examData = getExamData(params.examId)
 
-  // Sample results data
-  const results = {
-    totalQuestions: 90,
-    attempted: 85,
-    correct: 65,
-    incorrect: 20,
-    score: 195, // Assuming +3 for correct, -1 for incorrect
-    maxScore: 270,
-    percentile: 92.5,
-    rank: 5240,
-    timeTaken: "2h 45m",
-    subjectWisePerformance: [
-      { subject: "Physics", total: 30, attempted: 28, correct: 22, incorrect: 6, score: 60, maxScore: 90 },
-      { subject: "Chemistry", total: 30, attempted: 29, correct: 20, incorrect: 9, score: 51, maxScore: 90 },
-      { subject: "Mathematics", total: 30, attempted: 28, correct: 23, incorrect: 5, score: 64, maxScore: 90 },
-    ],
-    topicWisePerformance: [
-      { topic: "Mechanics", total: 10, correct: 8, incorrect: 1, unattempted: 1, subject: "Physics" },
-      { topic: "Electromagnetism", total: 8, correct: 6, incorrect: 2, unattempted: 0, subject: "Physics" },
-      { topic: "Optics", total: 6, correct: 4, incorrect: 1, unattempted: 1, subject: "Physics" },
-      { topic: "Modern Physics", total: 6, correct: 4, incorrect: 2, unattempted: 0, subject: "Physics" },
-      { topic: "Physical Chemistry", total: 10, correct: 7, incorrect: 3, unattempted: 0, subject: "Chemistry" },
-      { topic: "Organic Chemistry", total: 10, correct: 6, incorrect: 3, unattempted: 1, subject: "Chemistry" },
-      { topic: "Inorganic Chemistry", total: 10, correct: 7, incorrect: 3, unattempted: 0, subject: "Chemistry" },
-      { topic: "Algebra", total: 10, correct: 8, incorrect: 1, unattempted: 1, subject: "Mathematics" },
-      { topic: "Calculus", total: 10, correct: 8, incorrect: 2, unattempted: 0, subject: "Mathematics" },
-      { topic: "Coordinate Geometry", total: 10, correct: 7, incorrect: 2, unattempted: 1, subject: "Mathematics" },
-    ],
-    difficultyAnalysis: {
-      easy: { total: 30, correct: 28, incorrect: 2, unattempted: 0 },
-      medium: { total: 40, correct: 30, incorrect: 8, unattempted: 2 },
-      hard: { total: 20, correct: 7, incorrect: 10, unattempted: 3 },
-    },
-    timeSpent: {
-      physics: "55m",
-      chemistry: "50m",
-      mathematics: "60m",
-    },
-    comparisonWithToppers: {
-      userScore: 195,
-      topperScore: 245,
-      averageScore: 160,
-    },
+  useEffect(() => {
+    // Get exam result based on session ID or latest result
+    let result
+    if (sessionId) {
+      result = getExamResult(sessionId)
+    } else {
+      result = getLatestExamResult()
+    }
+
+    if (result) {
+      setExamResult(result)
+    } else {
+      // If no result found, create a sample result for demo purposes
+      const sampleResult = {
+        id: "sample_result",
+        examId: params.examId,
+        userId: "user_1",
+        date: new Date().toISOString(),
+        timeSpent: 9000, // 2h 30m
+        answers: {},
+        score: 195,
+        maxScore: 270,
+        correctAnswers: 65,
+        incorrectAnswers: 20,
+        unattempted: 5,
+        sectionResults: {
+          physics: {
+            score: 60,
+            maxScore: 90,
+            correct: 22,
+            incorrect: 6,
+            unattempted: 2,
+            accuracy: 78.6,
+          },
+          chemistry: {
+            score: 51,
+            maxScore: 90,
+            correct: 20,
+            incorrect: 9,
+            unattempted: 1,
+            accuracy: 69.0,
+          },
+          mathematics: {
+            score: 84,
+            maxScore: 90,
+            correct: 23,
+            incorrect: 5,
+            unattempted: 2,
+            accuracy: 82.1,
+          },
+        },
+      }
+      setExamResult(sampleResult)
+
+      toast({
+        title: "Demo Mode",
+        description: "Showing sample results as no exam data was found.",
+      })
+    }
+
+    setLoading(false)
+  }, [sessionId, params.examId, toast])
+
+  if (loading) {
+    return (
+      <div className="container flex h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="text-sm text-muted-foreground">Loading results...</p>
+        </div>
+      </div>
+    )
   }
 
   // Sample questions with answers (using the first few questions from exam data)
@@ -76,11 +130,33 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
     ...examData.sections.mathematics.questions.slice(0, 3),
   ].map((q) => ({
     ...q,
-    userAnswer:
-      Math.random() > 0.3 ? q.correctAnswer : Object.keys(q.options)[Math.floor(Math.random() * q.options.length)],
+    userAnswer: examResult.answers[q.id] || null,
   }))
 
-  const scorePercentage = (results.score / results.maxScore) * 100
+  const scorePercentage = (examResult.score / examResult.maxScore) * 100
+
+  // Data for pie charts
+  const attemptedData = [
+    { name: "Correct", value: examResult.correctAnswers, color: "#22c55e" },
+    { name: "Incorrect", value: examResult.incorrectAnswers, color: "#ef4444" },
+    { name: "Unattempted", value: examResult.unattempted, color: "#94a3b8" },
+  ]
+
+  const subjectData = Object.entries(examResult.sectionResults).map(([key, value]: [string, any]) => ({
+    name: key.charAt(0).toUpperCase() + key.slice(1),
+    value: value.score,
+    maxScore: value.maxScore,
+    accuracy: value.accuracy,
+    color: key === "physics" ? "#3b82f6" : key === "chemistry" ? "#8b5cf6" : "#ec4899",
+  }))
+
+  const difficultyData = [
+    { name: "Easy", score: 90, fullMark: 100 },
+    { name: "Medium", score: 75, fullMark: 100 },
+    { name: "Hard", score: 60, fullMark: 100 },
+  ]
+
+  const COLORS = ["#22c55e", "#ef4444", "#94a3b8", "#3b82f6", "#8b5cf6", "#ec4899"]
 
   return (
     <div className="container px-4 py-12 md:px-6 md:py-16">
@@ -94,7 +170,7 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
       <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h2 className="text-2xl font-bold">Performance Summary</h2>
-          <p className="text-muted-foreground">Exam taken on May 2, 2023</p>
+          <p className="text-muted-foreground">Exam taken on {new Date(examResult.date).toLocaleDateString()}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm">
@@ -128,7 +204,7 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {results.score} / {results.maxScore}
+              {examResult.score} / {examResult.maxScore}
               <span className="ml-2 text-sm font-normal text-muted-foreground">({scorePercentage.toFixed(1)}%)</span>
             </div>
             <Progress value={scorePercentage} className="mt-2 h-2" />
@@ -140,10 +216,12 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {results.percentile}
+              {(scorePercentage * 0.95).toFixed(1)}
               <span className="ml-1 text-sm font-normal text-muted-foreground">%ile</span>
             </div>
-            <p className="text-xs text-muted-foreground">Estimated Rank: {results.rank}</p>
+            <p className="text-xs text-muted-foreground">
+              Estimated Rank: {Math.floor(5000 * (1 - scorePercentage / 100))}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -151,9 +229,18 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
             <CardTitle className="text-sm font-medium text-muted-foreground">Accuracy</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{((results.correct / results.attempted) * 100).toFixed(1)}%</div>
+            <div className="text-2xl font-bold">
+              {examResult.correctAnswers + examResult.incorrectAnswers > 0
+                ? (
+                    (examResult.correctAnswers / (examResult.correctAnswers + examResult.incorrectAnswers)) *
+                    100
+                  ).toFixed(1)
+                : "0"}
+              %
+            </div>
             <p className="text-xs text-muted-foreground">
-              {results.correct} correct out of {results.attempted} attempted
+              {examResult.correctAnswers} correct out of {examResult.correctAnswers + examResult.incorrectAnswers}{" "}
+              attempted
             </p>
           </CardContent>
         </Card>
@@ -162,12 +249,14 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
             <CardTitle className="text-sm font-medium text-muted-foreground">Time Taken</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{results.timeTaken}</div>
+            <div className="text-2xl font-bold">
+              {Math.floor(examResult.timeSpent / 3600)}h {Math.floor((examResult.timeSpent % 3600) / 60)}m
+            </div>
             <p className="text-xs text-muted-foreground">
               {(
-                (Number.parseInt(results.timeTaken.split("h")[0]) * 60 +
-                  Number.parseInt(results.timeTaken.split(" ")[1].split("m")[0])) /
-                results.totalQuestions
+                examResult.timeSpent /
+                60 /
+                (examResult.correctAnswers + examResult.incorrectAnswers + examResult.unattempted)
               ).toFixed(1)}{" "}
               min per question
             </p>
@@ -191,28 +280,57 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
                 <CardDescription>Your overall performance in the exam</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Total Questions</span>
-                    <span className="font-medium">{results.totalQuestions}</span>
+                <div className="flex flex-col md:flex-row items-center justify-between">
+                  <div className="space-y-4 w-full md:w-1/2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Total Questions</span>
+                      <span className="font-medium">
+                        {examResult.correctAnswers + examResult.incorrectAnswers + examResult.unattempted}
+                      </span>
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Attempted</span>
+                      <span className="font-medium">{examResult.correctAnswers + examResult.incorrectAnswers}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Unattempted</span>
+                      <span className="font-medium">{examResult.unattempted}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Correct</span>
+                      <span className="font-medium text-green-600 dark:text-green-400">
+                        {examResult.correctAnswers}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Incorrect</span>
+                      <span className="font-medium text-red-600 dark:text-red-400">{examResult.incorrectAnswers}</span>
+                    </div>
                   </div>
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Attempted</span>
-                    <span className="font-medium">{results.attempted}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Unattempted</span>
-                    <span className="font-medium">{results.totalQuestions - results.attempted}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Correct</span>
-                    <span className="font-medium text-green-600 dark:text-green-400">{results.correct}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Incorrect</span>
-                    <span className="font-medium text-red-600 dark:text-red-400">{results.incorrect}</span>
+
+                  <div className="w-full md:w-1/2 h-[200px] mt-4 md:mt-0">
+                    <Chart>
+                      <ChartContent width="100%" height="100%">
+                        <PieChartContainer>
+                          <ChartPie
+                            data={attemptedData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={80}
+                            dataKey="value"
+                          >
+                            {attemptedData.map((entry, index) => (
+                              <ChartCell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </ChartPie>
+                          <PieChartTooltip />
+                          <ChartLegend />
+                        </PieChartContainer>
+                      </ChartContent>
+                    </Chart>
                   </div>
                 </div>
               </CardContent>
@@ -224,16 +342,38 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
                 <CardDescription>See how you performed in each subject</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {results.subjectWisePerformance.map((subject) => (
-                    <div key={subject.subject} className="space-y-2">
+                <div className="h-[200px] mb-4">
+                  <Chart>
+                    <ChartContent width="100%" height="100%">
+                      <BarChartContainer
+                        data={subjectData}
+                        margin={{
+                          top: 5,
+                          right: 30,
+                          left: 20,
+                          bottom: 5,
+                        }}
+                      >
+                        <ChartXAxis dataKey="name" />
+                        <ChartYAxis />
+                        <ChartTooltip />
+                        <ChartLegend />
+                        <ChartBar dataKey="value" fill="#3b82f6" name="Score" />
+                      </BarChartContainer>
+                    </ChartContent>
+                  </Chart>
+                </div>
+
+                <div className="space-y-4 mt-4">
+                  {Object.entries(examResult.sectionResults).map(([subject, data]: [string, any]) => (
+                    <div key={subject} className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium">{subject.subject}</span>
+                        <span className="font-medium">{subject.charAt(0).toUpperCase() + subject.slice(1)}</span>
                         <span className="text-sm">
-                          {subject.score}/{subject.maxScore} ({((subject.score / subject.maxScore) * 100).toFixed(1)}%)
+                          {data.score}/{data.maxScore} ({((data.score / data.maxScore) * 100).toFixed(1)}%)
                         </span>
                       </div>
-                      <Progress value={(subject.score / subject.maxScore) * 100} className="h-2" />
+                      <Progress value={(data.score / data.maxScore) * 100} className="h-2" />
                     </div>
                   ))}
                 </div>
@@ -248,59 +388,52 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
                 <CardDescription>Your performance across different difficulty levels</CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="h-[200px] mb-4">
+                  <Chart>
+                    <ChartContent width="100%" height="100%">
+                      <RadialBarChartContainer
+                        cx="50%"
+                        cy="50%"
+                        innerRadius="10%"
+                        outerRadius="80%"
+                        barSize={10}
+                        data={difficultyData}
+                      >
+                        <ChartRadialBar
+                          minAngle={15}
+                          background
+                          clockWise
+                          dataKey="score"
+                          label={{ position: "insideStart", fill: "#888" }}
+                        />
+                        <ChartLegend iconSize={10} layout="vertical" verticalAlign="middle" align="right" />
+                        <ChartTooltip />
+                      </RadialBarChartContainer>
+                    </ChartContent>
+                  </Chart>
+                </div>
+
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">Easy ({results.difficultyAnalysis.easy.total} questions)</span>
-                      <span className="text-sm">
-                        {results.difficultyAnalysis.easy.correct}/{results.difficultyAnalysis.easy.total} (
-                        {(
-                          (results.difficultyAnalysis.easy.correct / results.difficultyAnalysis.easy.total) *
-                          100
-                        ).toFixed(1)}
-                        %)
-                      </span>
+                      <span className="font-medium">Easy (30 questions)</span>
+                      <span className="text-sm">27/30 (90%)</span>
                     </div>
-                    <Progress
-                      value={(results.difficultyAnalysis.easy.correct / results.difficultyAnalysis.easy.total) * 100}
-                      className="h-2 bg-muted"
-                    />
+                    <Progress value={90} className="h-2 bg-muted" />
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">Medium ({results.difficultyAnalysis.medium.total} questions)</span>
-                      <span className="text-sm">
-                        {results.difficultyAnalysis.medium.correct}/{results.difficultyAnalysis.medium.total} (
-                        {(
-                          (results.difficultyAnalysis.medium.correct / results.difficultyAnalysis.medium.total) *
-                          100
-                        ).toFixed(1)}
-                        %)
-                      </span>
+                      <span className="font-medium">Medium (40 questions)</span>
+                      <span className="text-sm">30/40 (75%)</span>
                     </div>
-                    <Progress
-                      value={
-                        (results.difficultyAnalysis.medium.correct / results.difficultyAnalysis.medium.total) * 100
-                      }
-                      className="h-2 bg-muted"
-                    />
+                    <Progress value={75} className="h-2 bg-muted" />
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">Hard ({results.difficultyAnalysis.hard.total} questions)</span>
-                      <span className="text-sm">
-                        {results.difficultyAnalysis.hard.correct}/{results.difficultyAnalysis.hard.total} (
-                        {(
-                          (results.difficultyAnalysis.hard.correct / results.difficultyAnalysis.hard.total) *
-                          100
-                        ).toFixed(1)}
-                        %)
-                      </span>
+                      <span className="font-medium">Hard (20 questions)</span>
+                      <span className="text-sm">12/20 (60%)</span>
                     </div>
-                    <Progress
-                      value={(results.difficultyAnalysis.hard.correct / results.difficultyAnalysis.hard.total) * 100}
-                      className="h-2 bg-muted"
-                    />
+                    <Progress value={60} className="h-2 bg-muted" />
                   </div>
                 </div>
               </CardContent>
@@ -312,23 +445,49 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
                 <CardDescription>How you spent your time during the exam</CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="h-[200px] mb-4">
+                  <Chart>
+                    <ChartContent width="100%" height="100%">
+                      <PieChartContainer>
+                        <ChartPie
+                          data={subjectData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          dataKey="value"
+                          nameKey="name"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {subjectData.map((entry, index) => (
+                            <ChartCell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </ChartPie>
+                        <PieChartTooltip />
+                      </PieChartContainer>
+                    </ChartContent>
+                  </Chart>
+                </div>
+
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Physics</span>
-                    <span className="text-sm">{results.timeSpent.physics}</span>
+                    <span className="text-sm">{Math.floor((examResult.timeSpent * 0.3) / 60)} minutes</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Chemistry</span>
-                    <span className="text-sm">{results.timeSpent.chemistry}</span>
+                    <span className="text-sm">{Math.floor((examResult.timeSpent * 0.35) / 60)} minutes</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Mathematics</span>
-                    <span className="text-sm">{results.timeSpent.mathematics}</span>
+                    <span className="text-sm">{Math.floor((examResult.timeSpent * 0.35) / 60)} minutes</span>
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Total Time</span>
-                    <span className="text-sm">{results.timeTaken}</span>
+                    <span className="text-sm">
+                      {Math.floor(examResult.timeSpent / 3600)}h {Math.floor((examResult.timeSpent % 3600) / 60)}m
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -346,40 +505,29 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Your Score</span>
                     <span className="text-sm">
-                      {results.comparisonWithToppers.userScore}/{results.maxScore} (
-                      {((results.comparisonWithToppers.userScore / results.maxScore) * 100).toFixed(1)}%)
+                      {examResult.score}/{examResult.maxScore} (
+                      {((examResult.score / examResult.maxScore) * 100).toFixed(1)}%)
                     </span>
                   </div>
-                  <Progress
-                    value={(results.comparisonWithToppers.userScore / results.maxScore) * 100}
-                    className="h-2 bg-muted"
-                  />
+                  <Progress value={(examResult.score / examResult.maxScore) * 100} className="h-2 bg-muted" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Topper's Score</span>
                     <span className="text-sm">
-                      {results.comparisonWithToppers.topperScore}/{results.maxScore} (
-                      {((results.comparisonWithToppers.topperScore / results.maxScore) * 100).toFixed(1)}%)
+                      {Math.round(examResult.maxScore * 0.9)}/{examResult.maxScore} ({(90).toFixed(1)}%)
                     </span>
                   </div>
-                  <Progress
-                    value={(results.comparisonWithToppers.topperScore / results.maxScore) * 100}
-                    className="h-2 bg-muted"
-                  />
+                  <Progress value={90} className="h-2 bg-muted" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Average Score</span>
                     <span className="text-sm">
-                      {results.comparisonWithToppers.averageScore}/{results.maxScore} (
-                      {((results.comparisonWithToppers.averageScore / results.maxScore) * 100).toFixed(1)}%)
+                      {Math.round(examResult.maxScore * 0.6)}/{examResult.maxScore} ({(60).toFixed(1)}%)
                     </span>
                   </div>
-                  <Progress
-                    value={(results.comparisonWithToppers.averageScore / results.maxScore) * 100}
-                    className="h-2 bg-muted"
-                  />
+                  <Progress value={60} className="h-2 bg-muted" />
                 </div>
               </div>
             </CardContent>
@@ -405,20 +553,20 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {results.subjectWisePerformance.map((subject) => (
-                    <TableRow key={subject.subject}>
-                      <TableCell className="font-medium">{subject.subject}</TableCell>
-                      <TableCell className="text-right">
-                        {subject.attempted}/{subject.total}
-                      </TableCell>
-                      <TableCell className="text-right">{subject.correct}</TableCell>
-                      <TableCell className="text-right">{subject.incorrect}</TableCell>
-                      <TableCell className="text-right">
-                        {subject.score}/{subject.maxScore}
+                  {Object.entries(examResult.sectionResults).map(([subject, data]: [string, any]) => (
+                    <TableRow key={subject}>
+                      <TableCell className="font-medium">
+                        {subject.charAt(0).toUpperCase() + subject.slice(1)}
                       </TableCell>
                       <TableCell className="text-right">
-                        {((subject.correct / subject.attempted) * 100).toFixed(1)}%
+                        {data.correct + data.incorrect}/{data.correct + data.incorrect + data.unattempted}
                       </TableCell>
+                      <TableCell className="text-right">{data.correct}</TableCell>
+                      <TableCell className="text-right">{data.incorrect}</TableCell>
+                      <TableCell className="text-right">
+                        {data.score}/{data.maxScore}
+                      </TableCell>
+                      <TableCell className="text-right">{data.accuracy.toFixed(1)}%</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -427,51 +575,78 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
           </Card>
 
           <div className="grid gap-6 md:grid-cols-3">
-            {results.subjectWisePerformance.map((subject) => (
-              <Card key={subject.subject}>
+            {Object.entries(examResult.sectionResults).map(([subject, data]: [string, any]) => (
+              <Card key={subject}>
                 <CardHeader>
-                  <CardTitle>{subject.subject}</CardTitle>
+                  <CardTitle>{subject.charAt(0).toUpperCase() + subject.slice(1)}</CardTitle>
                   <CardDescription>
-                    Score: {subject.score}/{subject.maxScore} ({((subject.score / subject.maxScore) * 100).toFixed(1)}%)
+                    Score: {data.score}/{data.maxScore} ({((data.score / data.maxScore) * 100).toFixed(1)}%)
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  <div className="h-[150px] mb-4">
+                    <Chart>
+                      <ChartContent width="100%" height="100%">
+                        <PieChartContainer>
+                          <ChartPie
+                            data={[
+                              { name: "Correct", value: data.correct, color: "#22c55e" },
+                              { name: "Incorrect", value: data.incorrect, color: "#ef4444" },
+                              { name: "Unattempted", value: data.unattempted, color: "#94a3b8" },
+                            ]}
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={60}
+                            dataKey="value"
+                          >
+                            <ChartCell fill="#22c55e" />
+                            <ChartCell fill="#ef4444" />
+                            <ChartCell fill="#94a3b8" />
+                          </ChartPie>
+                          <PieChartTooltip />
+                          <ChartLegend />
+                        </PieChartContainer>
+                      </ChartContent>
+                    </Chart>
+                  </div>
+
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Attempted</span>
                         <span className="text-sm font-medium">
-                          {subject.attempted}/{subject.total} ({((subject.attempted / subject.total) * 100).toFixed(1)}
+                          {data.correct + data.incorrect}/{data.correct + data.incorrect + data.unattempted} (
+                          {(
+                            ((data.correct + data.incorrect) / (data.correct + data.incorrect + data.unattempted)) *
+                            100
+                          ).toFixed(1)}
                           %)
                         </span>
                       </div>
-                      <Progress value={(subject.attempted / subject.total) * 100} className="h-1.5" />
+                      <Progress
+                        value={
+                          ((data.correct + data.incorrect) / (data.correct + data.incorrect + data.unattempted)) * 100
+                        }
+                        className="h-1.5"
+                      />
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Correct</span>
                         <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                          {subject.correct}/{subject.attempted} (
-                          {((subject.correct / subject.attempted) * 100).toFixed(1)}%)
+                          {data.correct}/{data.correct + data.incorrect} ({data.accuracy.toFixed(1)}%)
                         </span>
                       </div>
-                      <Progress
-                        value={(subject.correct / subject.attempted) * 100}
-                        className="h-1.5 bg-green-100 dark:bg-green-900"
-                      />
+                      <Progress value={data.accuracy} className="h-1.5 bg-green-100 dark:bg-green-900" />
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm">Incorrect</span>
                         <span className="text-sm font-medium text-red-600 dark:text-red-400">
-                          {subject.incorrect}/{subject.attempted} (
-                          {((subject.incorrect / subject.attempted) * 100).toFixed(1)}%)
+                          {data.incorrect}/{data.correct + data.incorrect} ({(100 - data.accuracy).toFixed(1)}%)
                         </span>
                       </div>
-                      <Progress
-                        value={(subject.incorrect / subject.attempted) * 100}
-                        className="h-1.5 bg-red-100 dark:bg-red-900"
-                      />
+                      <Progress value={100 - data.accuracy} className="h-1.5 bg-red-100 dark:bg-red-900" />
                     </div>
                   </div>
                 </CardContent>
@@ -506,23 +681,26 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {results.topicWisePerformance
-                        .filter((topic) => topic.subject === "Physics")
-                        .map((topic) => (
-                          <TableRow key={topic.topic}>
-                            <TableCell className="font-medium">{topic.topic}</TableCell>
-                            <TableCell className="text-right">{topic.total}</TableCell>
-                            <TableCell className="text-right">{topic.correct}</TableCell>
-                            <TableCell className="text-right">{topic.incorrect}</TableCell>
-                            <TableCell className="text-right">{topic.unattempted}</TableCell>
-                            <TableCell className="text-right">
-                              {topic.correct + topic.incorrect > 0
-                                ? ((topic.correct / (topic.correct + topic.incorrect)) * 100).toFixed(1)
-                                : 0}
-                              %
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                      {[
+                        { topic: "Mechanics", total: 10, correct: 8, incorrect: 1, unattempted: 1 },
+                        { topic: "Electromagnetism", total: 8, correct: 6, incorrect: 2, unattempted: 0 },
+                        { topic: "Optics", total: 6, correct: 4, incorrect: 1, unattempted: 1 },
+                        { topic: "Modern Physics", total: 6, correct: 4, incorrect: 2, unattempted: 0 },
+                      ].map((topic) => (
+                        <TableRow key={topic.topic}>
+                          <TableCell className="font-medium">{topic.topic}</TableCell>
+                          <TableCell className="text-right">{topic.total}</TableCell>
+                          <TableCell className="text-right">{topic.correct}</TableCell>
+                          <TableCell className="text-right">{topic.incorrect}</TableCell>
+                          <TableCell className="text-right">{topic.unattempted}</TableCell>
+                          <TableCell className="text-right">
+                            {topic.correct + topic.incorrect > 0
+                              ? ((topic.correct / (topic.correct + topic.incorrect)) * 100).toFixed(1)
+                              : 0}
+                            %
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 </TabsContent>
@@ -539,23 +717,25 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {results.topicWisePerformance
-                        .filter((topic) => topic.subject === "Chemistry")
-                        .map((topic) => (
-                          <TableRow key={topic.topic}>
-                            <TableCell className="font-medium">{topic.topic}</TableCell>
-                            <TableCell className="text-right">{topic.total}</TableCell>
-                            <TableCell className="text-right">{topic.correct}</TableCell>
-                            <TableCell className="text-right">{topic.incorrect}</TableCell>
-                            <TableCell className="text-right">{topic.unattempted}</TableCell>
-                            <TableCell className="text-right">
-                              {topic.correct + topic.incorrect > 0
-                                ? ((topic.correct / (topic.correct + topic.incorrect)) * 100).toFixed(1)
-                                : 0}
-                              %
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                      {[
+                        { topic: "Physical Chemistry", total: 10, correct: 7, incorrect: 3, unattempted: 0 },
+                        { topic: "Organic Chemistry", total: 10, correct: 6, incorrect: 3, unattempted: 1 },
+                        { topic: "Inorganic Chemistry", total: 10, correct: 7, incorrect: 3, unattempted: 0 },
+                      ].map((topic) => (
+                        <TableRow key={topic.topic}>
+                          <TableCell className="font-medium">{topic.topic}</TableCell>
+                          <TableCell className="text-right">{topic.total}</TableCell>
+                          <TableCell className="text-right">{topic.correct}</TableCell>
+                          <TableCell className="text-right">{topic.incorrect}</TableCell>
+                          <TableCell className="text-right">{topic.unattempted}</TableCell>
+                          <TableCell className="text-right">
+                            {topic.correct + topic.incorrect > 0
+                              ? ((topic.correct / (topic.correct + topic.incorrect)) * 100).toFixed(1)
+                              : 0}
+                            %
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 </TabsContent>
@@ -572,23 +752,25 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {results.topicWisePerformance
-                        .filter((topic) => topic.subject === "Mathematics")
-                        .map((topic) => (
-                          <TableRow key={topic.topic}>
-                            <TableCell className="font-medium">{topic.topic}</TableCell>
-                            <TableCell className="text-right">{topic.total}</TableCell>
-                            <TableCell className="text-right">{topic.correct}</TableCell>
-                            <TableCell className="text-right">{topic.incorrect}</TableCell>
-                            <TableCell className="text-right">{topic.unattempted}</TableCell>
-                            <TableCell className="text-right">
-                              {topic.correct + topic.incorrect > 0
-                                ? ((topic.correct / (topic.correct + topic.incorrect)) * 100).toFixed(1)
-                                : 0}
-                              %
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                      {[
+                        { topic: "Algebra", total: 10, correct: 8, incorrect: 1, unattempted: 1 },
+                        { topic: "Calculus", total: 10, correct: 8, incorrect: 2, unattempted: 0 },
+                        { topic: "Coordinate Geometry", total: 10, correct: 7, incorrect: 2, unattempted: 1 },
+                      ].map((topic) => (
+                        <TableRow key={topic.topic}>
+                          <TableCell className="font-medium">{topic.topic}</TableCell>
+                          <TableCell className="text-right">{topic.total}</TableCell>
+                          <TableCell className="text-right">{topic.correct}</TableCell>
+                          <TableCell className="text-right">{topic.incorrect}</TableCell>
+                          <TableCell className="text-right">{topic.unattempted}</TableCell>
+                          <TableCell className="text-right">
+                            {topic.correct + topic.incorrect > 0
+                              ? ((topic.correct / (topic.correct + topic.incorrect)) * 100).toFixed(1)
+                              : 0}
+                            %
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 </TabsContent>
@@ -614,8 +796,10 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
                     <div className="mr-4 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full">
                       {question.userAnswer === question.correctAnswer ? (
                         <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-                      ) : (
+                      ) : question.userAnswer ? (
                         <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                      ) : (
+                        <div className="h-5 w-5 rounded-full border-2 border-gray-300"></div>
                       )}
                     </div>
                     <div>
@@ -645,7 +829,9 @@ export default function ResultsPage({ params }: { params: { examId: string } }) 
                               ? "border-green-600 bg-green-50 dark:border-green-400 dark:bg-green-950"
                               : option.id === question.userAnswer && option.id !== question.correctAnswer
                                 ? "border-red-600 bg-red-50 dark:border-red-400 dark:bg-red-950"
-                                : ""
+                                : option.id === question.userAnswer
+                                  ? "border-blue-600 bg-blue-50 dark:border-blue-400 dark:bg-blue-950"
+                                  : ""
                           }`}
                         >
                           <div className="flex items-center">

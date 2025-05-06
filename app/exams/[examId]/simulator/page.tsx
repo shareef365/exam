@@ -23,20 +23,19 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { useToast } from "@/components/ui/use-toast"
 
 // Import exam data based on exam ID
 import { getExamData } from "@/lib/exam-data"
+import { calculateResults, saveExamResult } from "@/lib/exam-results"
 
 export default function ExamSimulator({ params }: { params: { examId: string } }) {
   const router = useRouter()
+  const { toast } = useToast()
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [currentSection, setCurrentSection] = useState("physics")
   const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, Record<number, string>>>({
-    physics: {},
-    chemistry: {},
-    mathematics: {},
-  })
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({})
   const [flaggedQuestions, setFlaggedQuestions] = useState<Record<string, number[]>>({
     physics: [],
     chemistry: [],
@@ -48,6 +47,7 @@ export default function ExamSimulator({ params }: { params: { examId: string } }
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(true)
   const [isTimerWarning, setIsTimerWarning] = useState(false)
   const [showCalculator, setShowCalculator] = useState(false)
+  const [visitedQuestions, setVisitedQuestions] = useState<Set<number>>(new Set())
   const examContainerRef = useRef<HTMLDivElement>(null)
 
   // Get exam data based on exam ID
@@ -88,6 +88,13 @@ export default function ExamSimulator({ params }: { params: { examId: string } }
     return () => clearInterval(timer)
   }, [isInstructionsOpen])
 
+  // Mark current question as visited
+  useEffect(() => {
+    if (!isInstructionsOpen) {
+      setVisitedQuestions((prev) => new Set(prev).add(currentQuestion))
+    }
+  }, [currentQuestion, isInstructionsOpen])
+
   // Handle fullscreen
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -116,10 +123,7 @@ export default function ExamSimulator({ params }: { params: { examId: string } }
   const handleAnswerSelect = (questionId: number, answerId: string) => {
     setSelectedAnswers((prev) => ({
       ...prev,
-      [currentSection]: {
-        ...prev[currentSection],
-        [questionId]: answerId,
-      },
+      [questionId]: answerId,
     }))
   }
 
@@ -166,34 +170,63 @@ export default function ExamSimulator({ params }: { params: { examId: string } }
   }
 
   const handleSubmit = () => {
-    // In a real app, you would submit the answers to the server
-    // For now, we'll just redirect to a results page
-    router.push(`/exams/${params.examId}/results`)
+    try {
+      // Calculate and save results
+      const result = calculateResults(params.examId, selectedAnswers)
+      result.timeSpent = 10800 - timeLeft // Calculate actual time spent
+      saveExamResult(result)
+
+      // Show success toast
+      toast({
+        title: "Exam Submitted",
+        description: "Your exam has been submitted successfully.",
+      })
+
+      // Redirect to results page
+      router.push(`/exams/${params.examId}/results?session=${result.id}`)
+    } catch (error) {
+      console.error("Error submitting exam:", error)
+      toast({
+        title: "Error",
+        description: "There was an error submitting your exam. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleSaveAndNext = () => {
+    const currentQuestionData = examData.sections[currentSection].questions[currentQuestion]
+    if (selectedAnswers[currentQuestionData.id]) {
+      toast({
+        title: "Answer Saved",
+        description: "Your answer has been saved.",
+        variant: "default",
+      })
+    }
     handleNextQuestion()
   }
 
   const handleClearResponse = () => {
     const currentQuestionData = examData.sections[currentSection].questions[currentQuestion]
-    setSelectedAnswers((prev) => ({
-      ...prev,
-      [currentSection]: {
-        ...prev[currentSection],
-        [currentQuestionData.id]: "",
-      },
-    }))
+    setSelectedAnswers((prev) => {
+      const newAnswers = { ...prev }
+      delete newAnswers[currentQuestionData.id]
+      return newAnswers
+    })
+
+    toast({
+      title: "Response Cleared",
+      description: "Your answer has been cleared.",
+    })
   }
 
   const currentQuestionData = examData.sections[currentSection].questions[currentQuestion]
 
   // Calculate progress for each section
-  const sectionProgress = {
-    physics: (Object.keys(selectedAnswers.physics).length / examData.sections.physics.questions.length) * 100,
-    chemistry: (Object.keys(selectedAnswers.chemistry).length / examData.sections.chemistry.questions.length) * 100,
-    mathematics:
-      (Object.keys(selectedAnswers.mathematics).length / examData.sections.mathematics.questions.length) * 100,
+  const getSectionProgress = (section: string) => {
+    const sectionQuestions = examData.sections[section].questions
+    const answeredCount = sectionQuestions.filter((q) => selectedAnswers[q.id]).length
+    return (answeredCount / sectionQuestions.length) * 100
   }
 
   // Calculate overall progress
@@ -202,11 +235,7 @@ export default function ExamSimulator({ params }: { params: { examId: string } }
     examData.sections.chemistry.questions.length +
     examData.sections.mathematics.questions.length
 
-  const answeredQuestions =
-    Object.keys(selectedAnswers.physics).length +
-    Object.keys(selectedAnswers.chemistry).length +
-    Object.keys(selectedAnswers.mathematics).length
-
+  const answeredQuestions = Object.keys(selectedAnswers).length
   const overallProgress = (answeredQuestions / totalQuestions) * 100
 
   return (
@@ -216,63 +245,60 @@ export default function ExamSimulator({ params }: { params: { examId: string } }
         <AlertDialogContent className="max-w-3xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xl">Exam Instructions</AlertDialogTitle>
-            <AlertDialogDescription>
-              <div className="max-h-[60vh] overflow-y-auto pr-2">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-lg font-medium">General Instructions</h3>
-                    <ul className="ml-6 list-disc space-y-1 pt-2 text-sm">
-                      <li>Total duration of the exam is {examData.duration}.</li>
-                      <li>The clock will be set at the server. The countdown timer will display the remaining time.</li>
-                      <li>
-                        The question palette displayed on the right side of the screen will show the status of each
-                        question.
-                      </li>
-                      <li>You can navigate between sections and questions within a section at any time.</li>
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-medium">Navigating Through Questions</h3>
-                    <ul className="ml-6 list-disc space-y-1 pt-2 text-sm">
-                      <li>Click on a question number in the question palette to go directly to that question.</li>
-                      <li>Click on "Save & Next" to save your answer and move to the next question.</li>
-                      <li>Click on "Mark for Review" to flag a question for later review.</li>
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-medium">Answering Questions</h3>
-                    <ul className="ml-6 list-disc space-y-1 pt-2 text-sm">
-                      <li>For multiple-choice questions, click on the option you think is correct.</li>
-                      <li>To change your answer, click on another option.</li>
-                      <li>To clear your answer, click on the "Clear Response" button.</li>
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-medium">Marking Scheme</h3>
-                    <ul className="ml-6 list-disc space-y-1 pt-2 text-sm">
-                      <li>Each question carries {examData.markingScheme.correct} marks for a correct answer.</li>
-                      <li>
-                        There is a negative marking of {examData.markingScheme.incorrect} mark for each wrong answer.
-                      </li>
-                      <li>No marks will be deducted for unattempted questions.</li>
-                    </ul>
-                  </div>
-
-                  <div>
-                    <h3 className="text-lg font-medium">Submitting the Exam</h3>
-                    <ul className="ml-6 list-disc space-y-1 pt-2 text-sm">
-                      <li>Click on the "Submit" button only when you have completed the exam.</li>
-                      <li>Once submitted, you will not be able to return to the exam.</li>
-                      <li>The system will automatically submit your exam when the time expires.</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </AlertDialogDescription>
           </AlertDialogHeader>
+          {/* Fixed: Moved content outside of AlertDialogDescription to avoid h3 inside p */}
+          <div className="max-h-[60vh] overflow-y-auto pr-2">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-medium">General Instructions</h3>
+                <ul className="ml-6 list-disc space-y-1 pt-2 text-sm">
+                  <li>Total duration of the exam is {examData.duration}.</li>
+                  <li>The clock will be set at the server. The countdown timer will display the remaining time.</li>
+                  <li>
+                    The question palette displayed on the right side of the screen will show the status of each
+                    question.
+                  </li>
+                  <li>You can navigate between sections and questions within a section at any time.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-medium">Navigating Through Questions</h3>
+                <ul className="ml-6 list-disc space-y-1 pt-2 text-sm">
+                  <li>Click on a question number in the question palette to go directly to that question.</li>
+                  <li>Click on "Save & Next" to save your answer and move to the next question.</li>
+                  <li>Click on "Mark for Review" to flag a question for later review.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-medium">Answering Questions</h3>
+                <ul className="ml-6 list-disc space-y-1 pt-2 text-sm">
+                  <li>For multiple-choice questions, click on the option you think is correct.</li>
+                  <li>To change your answer, click on another option.</li>
+                  <li>To clear your answer, click on the "Clear Response" button.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-medium">Marking Scheme</h3>
+                <ul className="ml-6 list-disc space-y-1 pt-2 text-sm">
+                  <li>Each question carries {examData.markingScheme.correct} marks for a correct answer.</li>
+                  <li>There is a negative marking of {examData.markingScheme.incorrect} mark for each wrong answer.</li>
+                  <li>No marks will be deducted for unattempted questions.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-medium">Submitting the Exam</h3>
+                <ul className="ml-6 list-disc space-y-1 pt-2 text-sm">
+                  <li>Click on the "Submit" button only when you have completed the exam.</li>
+                  <li>Once submitted, you will not be able to return to the exam.</li>
+                  <li>The system will automatically submit your exam when the time expires.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
           <AlertDialogFooter>
             <AlertDialogAction>I have read and understood the instructions</AlertDialogAction>
           </AlertDialogFooter>
@@ -481,7 +507,7 @@ export default function ExamSimulator({ params }: { params: { examId: string } }
                   )}
 
                   <RadioGroup
-                    value={selectedAnswers[currentSection][currentQuestionData.id] || ""}
+                    value={selectedAnswers[currentQuestionData.id] || ""}
                     onValueChange={(value) => handleAnswerSelect(currentQuestionData.id, value)}
                     className="space-y-3"
                   >
@@ -489,7 +515,7 @@ export default function ExamSimulator({ params }: { params: { examId: string } }
                       <div
                         key={option.id}
                         className={`flex items-center rounded-lg border p-4 transition-colors ${
-                          selectedAnswers[currentSection][currentQuestionData.id] === option.id
+                          selectedAnswers[currentQuestionData.id] === option.id
                             ? "border-primary bg-primary/5"
                             : "hover:bg-muted/50"
                         }`}
@@ -565,7 +591,7 @@ export default function ExamSimulator({ params }: { params: { examId: string } }
                           className={`h-10 w-10 p-0 ${
                             currentSection === "physics" && currentQuestion === index ? "border-2 border-primary" : ""
                           } ${
-                            selectedAnswers.physics[q.id]
+                            selectedAnswers[q.id]
                               ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800"
                               : ""
                           } ${
@@ -595,7 +621,7 @@ export default function ExamSimulator({ params }: { params: { examId: string } }
                           className={`h-10 w-10 p-0 ${
                             currentSection === "chemistry" && currentQuestion === index ? "border-2 border-primary" : ""
                           } ${
-                            selectedAnswers.chemistry[q.id]
+                            selectedAnswers[q.id]
                               ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800"
                               : ""
                           } ${
@@ -627,7 +653,7 @@ export default function ExamSimulator({ params }: { params: { examId: string } }
                               ? "border-2 border-primary"
                               : ""
                           } ${
-                            selectedAnswers.mathematics[q.id]
+                            selectedAnswers[q.id]
                               ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800"
                               : ""
                           } ${

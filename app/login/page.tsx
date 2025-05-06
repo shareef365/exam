@@ -11,9 +11,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent } from "@/components/ui/card"
+import { useToast } from "@/components/ui/use-toast"
+import { useAuth } from "@/components/auth-provider"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { toast } = useToast()
+  const { login } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
@@ -33,11 +37,22 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await login(formData.email, formData.password)
+      toast({
+        title: "Login successful",
+        description: "Welcome back to ExamSim!",
+      })
+      router.push("/dashboard")
+    } catch (error) {
+      toast({
+        title: "Login failed",
+        description: "Please check your credentials and try again.",
+        variant: "destructive",
+      })
+    } finally {
       setIsLoading(false)
-      router.push("/")
-    }, 1500)
+    }
   }
 
   return (

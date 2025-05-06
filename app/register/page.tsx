@@ -11,9 +11,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent } from "@/components/ui/card"
+import { useToast } from "@/components/ui/use-toast"
+import { useAuth } from "@/components/auth-provider"
 
 export default function RegisterPage() {
   const router = useRouter()
+  const { toast } = useToast()
+  const { register } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
@@ -34,11 +38,22 @@ export default function RegisterPage() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await register(formData.name, formData.email, formData.password)
+      toast({
+        title: "Registration successful",
+        description: "Welcome to ExamSim! Your account has been created.",
+      })
+      router.push("/dashboard")
+    } catch (error) {
+      toast({
+        title: "Registration failed",
+        description: "There was an error creating your account. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
       setIsLoading(false)
-      router.push("/")
-    }, 1500)
+    }
   }
 
   return (
@@ -94,6 +109,7 @@ export default function RegisterPage() {
                       value={formData.password}
                       onChange={handleChange}
                       required
+                      minLength={8}
                     />
                     <Button
                       type="button"

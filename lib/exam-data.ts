@@ -530,7 +530,7 @@ const neetData: ExamData = {
           subject: "Physics",
           explanation: "At the highest point, the velocity becomes zero. Hence, the kinetic energy is zero.",
         },
-        // Add more physics questions for NEET
+        // More physics questions for NEET
       ],
     },
     chemistry: {
@@ -548,7 +548,7 @@ const neetData: ExamData = {
           subject: "Chemistry",
           explanation: "pH = -log[H⁺], so [H⁺] = 10⁻ᵖᴴ = 10⁻⁴·⁵ = 3.16 × 10⁻⁴ M.",
         },
-        // Add more chemistry questions for NEET
+        // More chemistry questions for NEET
       ],
     },
     mathematics: {
@@ -566,7 +566,7 @@ const neetData: ExamData = {
           subject: "Biology",
           explanation: "Apodemes are the structures that help in the attachment of leg muscles in cockroach.",
         },
-        // Add more biology questions for NEET (using mathematics section as a placeholder)
+        // More biology questions for NEET (using mathematics section as a placeholder)
       ],
     },
   },
@@ -601,7 +601,7 @@ const eamcetAPData: ExamData = {
           explanation:
             "The acceleration is (20 - 10)/2 = 5 m/s². Using v = u + at, at t = 5s, v = 10 + 5 × 5 = 35 m/s.",
         },
-        // Add more physics questions for EAMCET
+        // More physics questions for EAMCET
       ],
     },
     chemistry: {
@@ -619,7 +619,7 @@ const eamcetAPData: ExamData = {
           subject: "Chemistry",
           explanation: "pH = -log[H⁺], so [H⁺] = 10⁻ᵖᴴ = 10⁻⁴·⁵ = 3.16 × 10⁻⁴ M.",
         },
-        // Add more chemistry questions for EAMCET
+        // More chemistry questions for EAMCET
       ],
     },
     mathematics: {
@@ -638,7 +638,7 @@ const eamcetAPData: ExamData = {
           explanation:
             "(f ∘ g)(x) = f(g(x)) = f(2x + 1) = (2x + 1)² - 3(2x + 1) + 2 = 4x² + 4x + 1 - 6x - 3 + 2 = 4x² - 2x + 0 = 4x² - 2x",
         },
-        // Add more mathematics questions for EAMCET
+        // More mathematics questions for EAMCET
       ],
     },
   },
@@ -656,4 +656,89 @@ export function getExamData(examId: string): ExamData {
     default:
       return jeeMainData // Default to JEE Main if exam ID is not found
   }
+}
+
+// New interfaces and functions for the updated exam system
+export interface Exam {
+  id: string
+  name: string
+  title: string
+  description: string
+  duration: number
+  sections: Section[]
+}
+
+export interface Section {
+  id: string
+  name: string
+  title: string
+}
+
+export interface NewQuestion {
+  id: string
+  text: string
+  options: string[]
+  correctOption: string
+  explanation: string
+  sectionId: string
+  image?: string
+}
+
+const exams: Exam[] = [
+  {
+    id: "jee-main",
+    name: "JEE Main",
+    title: "JEE Main",
+    description: "Joint Entrance Examination",
+    duration: 180,
+    sections: [
+      { id: "physics", name: "Physics", title: "Physics" },
+      { id: "chemistry", name: "Chemistry", title: "Chemistry" },
+      { id: "maths", name: "Maths", title: "Maths" },
+    ],
+  },
+  {
+    id: "neet",
+    name: "NEET",
+    title: "NEET",
+    description: "National Eligibility Entrance Test",
+    duration: 200,
+    sections: [
+      { id: "physics", name: "Physics", title: "Physics" },
+      { id: "chemistry", name: "Chemistry", title: "Chemistry" },
+      { id: "biology", name: "Biology", title: "Biology" },
+    ],
+  },
+]
+
+const newQuestions: NewQuestion[] = [
+  {
+    id: "1",
+    sectionId: "physics",
+    text: "What is the SI unit of force?",
+    options: ["Newton", "Kilogram", "Meter", "Second"],
+    correctOption: "Newton",
+    explanation: "The SI unit of force is Newton.",
+  },
+  {
+    id: "2",
+    sectionId: "physics",
+    text: "What is the SI unit of energy?",
+    options: ["Joule", "Kilogram", "Meter", "Second"],
+    correctOption: "Joule",
+    explanation: "The SI unit of energy is Joule.",
+  },
+  // More questions...
+]
+
+export const getExamById = (id: string): Exam | undefined => {
+  return exams.find((exam) => exam.id === id)
+}
+
+export const getExamQuestions = (examId: string): NewQuestion[] => {
+  return newQuestions.filter((question) => {
+    const exam = getExamById(examId)
+    if (!exam) return false
+    return exam.sections.some((section) => section.id === question.sectionId)
+  })
 }

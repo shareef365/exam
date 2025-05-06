@@ -1,80 +1,71 @@
-import Link from "next/link"
-import { ArrowUpRight, CheckCircle, XCircle } from "lucide-react"
+"use client"
 
-export default function RecentExams() {
-  const recentExams = [
-    {
-      id: 1,
-      name: "JEE Main Mock Test 3",
-      date: "2 days ago",
-      score: 78,
-      maxScore: 100,
-      percentile: 82,
-      status: "pass",
-    },
-    {
-      id: 2,
-      name: "Physics - Mechanics",
-      date: "5 days ago",
-      score: 65,
-      maxScore: 100,
-      percentile: 70,
-      status: "pass",
-    },
-    {
-      id: 3,
-      name: "Chemistry - Organic",
-      date: "1 week ago",
-      score: 45,
-      maxScore: 100,
-      percentile: 52,
-      status: "fail",
-    },
-    {
-      id: 4,
-      name: "Mathematics - Calculus",
-      date: "2 weeks ago",
-      score: 82,
-      maxScore: 100,
-      percentile: 88,
-      status: "pass",
-    },
-  ]
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { ArrowUpRight, CheckCircle } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { getExamData } from "@/lib/exam-data"
+
+export default function RecentExams({ examResults = [] }) {
+  const [recentExams, setRecentExams] = useState([])
+
+  useEffect(() => {
+    // Sort exam results by date (newest first) and take the first 5
+    const sortedResults = [...examResults]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5)
+      .map((result) => {
+        const examData = getExamData(result.examId)
+        return {
+          ...result,
+          examName: examData.name,
+          scorePercentage: ((result.score / result.maxScore) * 100).toFixed(1),
+          date: new Date(result.date).toLocaleDateString(),
+        }
+      })
+
+    setRecentExams(sortedResults)
+  }, [examResults])
+
+  if (recentExams.length === 0) {
+    return (
+      <div className="flex h-[200px] flex-col items-center justify-center space-y-3 rounded-md border border-dashed p-8 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+          <CheckCircle className="h-6 w-6 text-primary" />
+        </div>
+        <div>
+          <h3 className="text-lg font-medium">No exams taken yet</h3>
+          <p className="text-sm text-muted-foreground">Start taking exams to see your performance here.</p>
+        </div>
+        <Button asChild className="mt-2 bg-blue-600 hover:bg-blue-700">
+          <Link href="/exams">Browse Exams</Link>
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
       {recentExams.map((exam) => (
-        <div key={exam.id} className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div
-              className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                exam.status === "pass"
-                  ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                  : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-              }`}
-            >
-              {exam.status === "pass" ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+        <div key={exam.id} className="flex items-center justify-between rounded-lg border p-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h4 className="font-medium">{exam.examName}</h4>
+              <Badge variant={Number(exam.scorePercentage) >= 70 ? "success" : "destructive"}>
+                {exam.scorePercentage}%
+              </Badge>
             </div>
-            <div>
-              <p className="font-medium">{exam.name}</p>
-              <p className="text-sm text-muted-foreground">{exam.date}</p>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              {exam.score}/{exam.maxScore} points • {exam.date}
+            </p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="font-medium">
-                {exam.score}/{exam.maxScore}
-              </p>
-              <p className="text-sm text-muted-foreground">{exam.percentile} percentile</p>
-            </div>
-            <Link
-              href={`/exams/results/${exam.id}`}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-muted hover:bg-muted/80"
-            >
+          <Button asChild variant="ghost" size="icon">
+            <Link href={`/exams/${exam.examId}/results?session=${exam.id}`}>
               <ArrowUpRight className="h-4 w-4" />
-              <span className="sr-only">View details</span>
+              <span className="sr-only">View Results</span>
             </Link>
-          </div>
+          </Button>
         </div>
       ))}
     </div>
