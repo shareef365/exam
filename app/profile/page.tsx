@@ -41,7 +41,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
+      {/* <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="achievements">Achievements</TabsTrigger>
@@ -153,4 +153,8 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="h-[300px] w-full rounded-md border border-dashed p-10 text-center">
-                <div className="flex h-\
+                <div className="flex >
+                 */}
+
+</div>)
+}
