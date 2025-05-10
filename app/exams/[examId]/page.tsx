@@ -32,6 +32,7 @@ export default function ExamPage({ params }: { params: { examId: string } }) {
       students: "250,000+",
       rating: 4.8,
       reviews: 1250,
+      simulatorPath: "/exams/jee/simulator",
     },
     neet: {
       name: "NEET",
@@ -59,6 +60,7 @@ export default function ExamPage({ params }: { params: { examId: string } }) {
       students: "200,000+",
       rating: 4.7,
       reviews: 980,
+      simulatorPath: "/exams/neet/simulator",
     },
     "eamcet-ap": {
       name: "EAMCET (AP)",
@@ -85,6 +87,7 @@ export default function ExamPage({ params }: { params: { examId: string } }) {
       students: "120,000+",
       rating: 4.6,
       reviews: 750,
+      simulatorPath: "/exams/eamcet/simulator",
     },
   }
 
@@ -109,6 +112,7 @@ export default function ExamPage({ params }: { params: { examId: string } }) {
     students: "50,000+",
     rating: 4.5,
     reviews: 500,
+    simulatorPath: "/exams/jee/simulator",
   }
 
   // Get the exam data based on the exam ID, or use default if not found
@@ -134,7 +138,7 @@ export default function ExamPage({ params }: { params: { examId: string } }) {
           <p className="text-muted-foreground">{exam.description}</p>
           <div className="flex flex-wrap gap-4">
             <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700">
-              <Link href={`/exams/${params.examId}/simulator`}>
+              <Link href={exam.simulatorPath}>
                 Start Simulator <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>

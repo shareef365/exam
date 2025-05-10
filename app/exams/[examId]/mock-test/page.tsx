@@ -356,20 +356,24 @@ export default function MockTestPage() {
       </Dialog>
 
       {/* Exam Header */}
-      <header className="sticky top-0 z-10 bg-background border-b shadow-sm">
-        <div className="container mx-auto px-4 py-2">
+      <header className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b shadow-sm">
+        <div className="container mx-auto px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center space-x-4">
               <h1 className="text-lg font-bold truncate">{exam.name}</h1>
               <Badge variant="outline" className="hidden sm:inline-flex">
-                Mock Test
+                Computer Based Test
               </Badge>
             </div>
 
             <div className="flex items-center space-x-4">
-              <div className="flex items-center bg-muted px-3 py-1 rounded-md">
-                <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className={`font-mono ${timeRemaining < 300 ? "text-red-500 font-bold" : ""}`}>
+              <div className="flex items-center bg-blue-50 dark:bg-blue-900 px-3 py-1.5 rounded-md">
+                <Clock
+                  className={`h-4 w-4 mr-2 ${timeRemaining < 300 ? "text-red-500 animate-pulse" : "text-blue-600 dark:text-blue-400"}`}
+                />
+                <span
+                  className={`font-mono font-medium ${timeRemaining < 300 ? "text-red-500 font-bold" : "text-blue-600 dark:text-blue-400"}`}
+                >
                   {formatTime(timeRemaining)}
                 </span>
               </div>
@@ -387,9 +391,13 @@ export default function MockTestPage() {
           {/* Section Tabs */}
           {exam.sections && exam.sections.length > 0 && (
             <Tabs value={currentSection} onValueChange={handleSectionChange} className="mt-2">
-              <TabsList className="w-full justify-start overflow-x-auto">
+              <TabsList className="w-full justify-start overflow-x-auto bg-blue-50 dark:bg-blue-950 p-1">
                 {exam.sections.map((section: any) => (
-                  <TabsTrigger key={section.id} value={section.id} className="whitespace-nowrap">
+                  <TabsTrigger
+                    key={section.id}
+                    value={section.id}
+                    className="whitespace-nowrap data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+                  >
                     {section.name}
                   </TabsTrigger>
                 ))}
@@ -398,7 +406,10 @@ export default function MockTestPage() {
           )}
 
           {/* Progress bar */}
-          <Progress value={(Object.keys(answers).length / questions.length) * 100} className="h-1 mt-2" />
+          <Progress
+            value={(Object.keys(answers).length / questions.length) * 100}
+            className="h-1 mt-2 bg-slate-200 dark:bg-slate-800"
+          />
         </div>
       </header>
 
@@ -407,7 +418,7 @@ export default function MockTestPage() {
         {/* Question Area */}
         <div className="lg:col-span-3 space-y-6">
           {currentQuestion && (
-            <Card>
+            <Card className="shadow-md">
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -452,7 +463,14 @@ export default function MockTestPage() {
                   className="mt-6 space-y-4"
                 >
                   {currentQuestion.options.map((option: any, index: number) => (
-                    <div key={index} className="flex items-start space-x-2 p-3 rounded-md hover:bg-muted">
+                    <div
+                      key={index}
+                      className={`flex items-start space-x-2 p-3 rounded-md border transition-colors ${
+                        answers[currentQuestion.id] === option.id
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-950 dark:border-blue-600"
+                          : "hover:bg-slate-50 dark:hover:bg-slate-900"
+                      }`}
+                    >
                       <RadioGroupItem value={option.id} id={`option-${index}`} />
                       <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
                         {option.text}
@@ -468,12 +486,16 @@ export default function MockTestPage() {
                   ))}
                 </RadioGroup>
 
-                <div className="flex justify-between mt-8">
+                <div className="flex justify-between mt-8 pt-4 border-t">
                   <Button variant="outline" onClick={goToPrevQuestion} disabled={currentQuestionIndex === 0}>
                     <ChevronLeft className="mr-2 h-4 w-4" />
                     Previous
                   </Button>
-                  <Button onClick={goToNextQuestion} disabled={currentQuestionIndex === sectionQuestions.length - 1}>
+                  <Button
+                    onClick={goToNextQuestion}
+                    className="bg-blue-600 hover:bg-blue-700"
+                    disabled={currentQuestionIndex === sectionQuestions.length - 1}
+                  >
                     Next
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -501,7 +523,9 @@ export default function MockTestPage() {
                       key={index}
                       variant="outline"
                       size="sm"
-                      className={`h-10 w-10 p-0 font-medium ${getQuestionStatusClass(index)} ${currentQuestionIndex === index ? "ring-2 ring-primary" : ""}`}
+                      className={`h-10 w-10 p-0 font-medium ${getQuestionStatusClass(index)} ${
+                        currentQuestionIndex === index ? "ring-2 ring-blue-500" : ""
+                      }`}
                       onClick={() => goToQuestion(index)}
                     >
                       {index + 1}
@@ -511,11 +535,11 @@ export default function MockTestPage() {
 
                 <div className="space-y-2 mt-6">
                   <div className="flex items-center text-sm">
-                    <div className="w-4 h-4 rounded-full bg-gray-200 mr-2"></div>
+                    <div className="w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-700 mr-2"></div>
                     <span>Not Visited</span>
                   </div>
                   <div className="flex items-center text-sm">
-                    <div className="w-4 h-4 rounded-full bg-purple-200 dark:bg-purple-900 mr-2"></div>
+                    <div className="w-4 h-4 rounded-full bg-red-200 dark:bg-red-900 mr-2"></div>
                     <span>Visited</span>
                   </div>
                   <div className="flex items-center text-sm">
@@ -553,7 +577,11 @@ export default function MockTestPage() {
               </>
             )}
 
-            <Button variant="default" className="w-full mt-6" onClick={() => setConfirmSubmit(true)}>
+            <Button
+              variant="default"
+              className="w-full mt-6 bg-blue-600 hover:bg-blue-700"
+              onClick={() => setConfirmSubmit(true)}
+            >
               Submit Exam
             </Button>
           </div>

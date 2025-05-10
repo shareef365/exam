@@ -9,7 +9,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Separator } from "@/components/ui/separator"
 import { getExamById, getExamQuestions } from "@/lib/exam-data"
 
 export default function PracticePage() {
@@ -168,29 +167,35 @@ export default function PracticePage() {
   }
 
   return (
-    <div className="container mx-auto mt-8">
-      <Button variant="ghost" onClick={() => router.back()}>
+    <div className="container mx-auto mt-8 px-4">
+      <Button variant="ghost" onClick={() => router.back()} className="mb-4">
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back
       </Button>
-      <h1 className="text-2xl font-bold mb-4">{exam.title} - Practice</h1>
+      <h1 className="text-2xl font-bold mb-4">{exam.title} - Practice Mode</h1>
 
       <Tabs defaultValue={exam.sections[0].id} className="mb-4" onValueChange={handleSectionChange}>
-        <TabsList>
+        <TabsList className="bg-blue-50 dark:bg-blue-950 p-1">
           {exam.sections.map((section: any) => (
-            <TabsTrigger key={section.id} value={section.id}>
+            <TabsTrigger
+              key={section.id}
+              value={section.id}
+              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+            >
               {section.title}
             </TabsTrigger>
           ))}
         </TabsList>
         {exam.sections.map((section: any) => (
           <TabsContent key={section.id} value={section.id}>
-            <div className="flex">
-              <div className="w-2/3 pr-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>
-                      Question {currentQuestionIndex + 1} / {sectionQuestions.length}
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="w-full md:w-2/3">
+                <Card className="shadow-md">
+                  <CardHeader className="border-b">
+                    <CardTitle className="flex justify-between items-center">
+                      <span>
+                        Question {currentQuestionIndex + 1} / {sectionQuestions.length}
+                      </span>
                       <Button variant="ghost" size="icon" onClick={toggleBookmark}>
                         {bookmarkedQuestions.has(currentQuestionIndex) ? (
                           <BookmarkPlus className="h-4 w-4 text-yellow-500" />
@@ -200,23 +205,35 @@ export default function PracticePage() {
                       </Button>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-6">
                     {currentQuestion ? (
                       <div>
-                        <p className="mb-4">{currentQuestion.question}</p>
-                        <RadioGroup value={selectedAnswer || ""} onValueChange={handleAnswerChange}>
+                        <p className="mb-6 text-lg">{currentQuestion.question}</p>
+                        <RadioGroup
+                          value={selectedAnswer || ""}
+                          onValueChange={handleAnswerChange}
+                          className="space-y-3"
+                        >
                           {currentQuestion.options.map((option: string, index: number) => (
-                            <div key={index} className="flex items-center space-x-2">
+                            <div
+                              key={index}
+                              className={`flex items-center space-x-2 p-3 rounded-md border transition-colors ${
+                                selectedAnswer === option
+                                  ? "border-blue-500 bg-blue-50 dark:bg-blue-950 dark:border-blue-600"
+                                  : "hover:bg-slate-50 dark:hover:bg-slate-900"
+                              }`}
+                            >
                               <RadioGroupItem value={option} id={`option-${index}`} />
-                              <Label htmlFor={`option-${index}`}>{option}</Label>
+                              <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
+                                {option}
+                              </Label>
                             </div>
                           ))}
                         </RadioGroup>
                         {showExplanation && (
-                          <div className="mt-4">
-                            <Separator className="mb-2" />
-                            <p className="font-bold">Explanation:</p>
-                            <p>{currentQuestion.explanation}</p>
+                          <div className="mt-6 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-md">
+                            <p className="font-bold text-green-800 dark:text-green-300 mb-2">Explanation:</p>
+                            <p className="text-green-700 dark:text-green-400">{currentQuestion.explanation}</p>
                           </div>
                         )}
                       </div>
@@ -224,14 +241,14 @@ export default function PracticePage() {
                       <p>No questions available in this section.</p>
                     )}
                   </CardContent>
-                  <CardFooter className="flex justify-between">
+                  <CardFooter className="flex justify-between border-t pt-4">
                     <Button variant="outline" size="sm" onClick={resetQuestion} disabled={!currentQuestion}>
                       <RotateCcw className="mr-2 h-4 w-4" />
                       Reset
                     </Button>
-                    <div>
+                    <div className="flex gap-2">
                       <Button
-                        variant="secondary"
+                        variant="outline"
                         size="sm"
                         onClick={goToPrevQuestion}
                         disabled={currentQuestionIndex === 0}
@@ -243,6 +260,7 @@ export default function PracticePage() {
                         size="sm"
                         onClick={checkAnswer}
                         disabled={!selectedAnswer || showExplanation || !currentQuestion}
+                        className="bg-blue-600 hover:bg-blue-700"
                       >
                         Check Answer
                       </Button>
@@ -259,18 +277,28 @@ export default function PracticePage() {
                 </Card>
               </div>
 
-              <div className="w-1/3 pl-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Question List</CardTitle>
+              <div className="w-full md:w-1/3">
+                <Card className="shadow-md">
+                  <CardHeader className="border-b">
+                    <CardTitle>Question Navigator</CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-6">
                     <div className="grid grid-cols-4 gap-2">
                       {sectionQuestions.map((question: any, index: number) => (
                         <Button
                           key={index}
                           variant="outline"
-                          className={`w-full h-10 flex items-center justify-center ${getQuestionStatusClass(index)}`}
+                          className={`w-full h-10 flex items-center justify-center font-medium ${
+                            currentQuestionIndex === index ? "ring-2 ring-blue-500" : ""
+                          } ${
+                            correctAnswers.has(index)
+                              ? "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800"
+                              : incorrectAnswers.has(index)
+                                ? "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
+                                : answeredQuestions.has(index)
+                                  ? "bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800"
+                                  : ""
+                          } ${bookmarkedQuestions.has(index) ? "border-yellow-500 dark:border-yellow-600" : ""}`}
                           onClick={() => goToQuestion(index)}
                         >
                           {index + 1}
@@ -278,8 +306,11 @@ export default function PracticePage() {
                       ))}
                     </div>
                   </CardContent>
-                  <CardFooter>
-                    <Button className="w-full" onClick={() => setShowQuestionsDialog(true)}>
+                  <CardFooter className="border-t pt-4">
+                    <Button
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      onClick={() => setShowQuestionsDialog(true)}
+                    >
                       <List className="mr-2 h-4 w-4" />
                       Show All Questions
                     </Button>
@@ -292,21 +323,23 @@ export default function PracticePage() {
       </Tabs>
 
       <Dialog open={showQuestionsDialog} onOpenChange={setShowQuestionsDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>All Questions</DialogTitle>
+            <DialogTitle className="text-xl font-bold">All Questions</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {questions.map((question: any, index: number) => (
-              <Card key={index}>
-                <CardHeader>
-                  <CardTitle>Question {index + 1}</CardTitle>
+              <Card key={index} className="shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Question {index + 1}</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p>{question.question}</p>
+                <CardContent className="pt-0">
+                  <p className="line-clamp-3 text-sm">{question.question}</p>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="border-t pt-3">
                   <Button
+                    size="sm"
+                    className="w-full bg-blue-600 hover:bg-blue-700"
                     onClick={() => {
                       handleSectionChange(question.sectionId)
                       const sectionQuestions = getCurrentSectionQuestions()
