@@ -1,4 +1,5 @@
 import Link from "next/link"
+import React from 'react';
 import { ArrowRight, BookOpen, Clock, FileCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import ExamCategories from "@/components/exam-categories"
